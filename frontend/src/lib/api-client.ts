@@ -283,6 +283,21 @@ class ApiClient {
   }
 
   /**
+   * Update a company profile
+   */
+  async updateCompanyProfile(companyId: string, updates: {
+    regulatory_topics?: string[];
+    company_name?: string;
+    industry?: string;
+    description?: string;
+  }): Promise<CompanyProfileResponse> {
+    return this.request<CompanyProfileResponse>(`/companies/${encodeURIComponent(companyId)}`, {
+      method: 'PATCH',
+      body: JSON.stringify(updates),
+    });
+  }
+
+  /**
    * Check backend health
    */
   async healthCheck(): Promise<{ status: string; service: string; scheduler_enabled: boolean }> {
