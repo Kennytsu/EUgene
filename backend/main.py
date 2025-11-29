@@ -61,6 +61,10 @@ app.add_middleware(
 from app.api.companies import router as companies_router
 app.include_router(companies_router)
 
+# RAG router for regulatory intelligence
+from app.api.rag import router as rag_router
+app.include_router(rag_router)
+
 # Legislative files router requires Supabase
 if SUPABASE_CONFIGURED:
     from app.api.legislative_files import router as legislative_files_router

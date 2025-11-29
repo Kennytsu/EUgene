@@ -23,15 +23,20 @@ export function useChatSessions() {
     queryKey: ["chat_sessions"],
     queryFn: async () => {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return [];
+      
+      // For anonymous sessions, use a default user_id or null
+      const userId = user?.id || null;
 
       const { data, error } = await supabase
         .from("chat_sessions")
         .select("*")
-        .eq("user_id", user.id)
-        .order("updated_at", { ascending: false });
+        .eq("user_id", userId)
+        .order("created_at", { ascending: false });
 
-      if (error) throw error;
+      if (error) {
+        console.error("Error fetching chat sessions:", error);
+        return [];
+      }
       return data as ChatSession[];
     },
   });
@@ -64,15 +69,19 @@ export function useCreateChatSession() {
   return useMutation({
     mutationFn: async (title: string = "New Chat") => {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error("Not authenticated");
+      // Allow anonymous sessions with user_id = null
+      const userId = user?.id || null;
 
       const { data, error } = await supabase
         .from("chat_sessions")
-        .insert([{ user_id: user.id, title }])
+        .insert([{ user_id: userId, title }])
         .select()
         .single();
 
-      if (error) throw error;
+      if (error) {
+        console.error("Error creating chat session:", error);
+        throw error;
+      }
       return data as ChatSession;
     },
     onSuccess: () => {
@@ -108,7 +117,10 @@ export function useAddChatMessage() {
         .select()
         .single();
 
-      if (error) throw error;
+      if (error) {
+        console.error("Error adding chat message:", error);
+        throw error;
+      }
       return data as ChatMessageType;
     },
     onSuccess: (_, variables) => {
