@@ -30,12 +30,25 @@ export function Navbar() {
 
   const handleLogout = async () => {
     try {
+      // Sign out and clear all session data
       await signOut();
+
+      // Show success message
       toast.success('Logged out successfully');
-      navigate('/');
+
+      // Navigate to landing page
+      navigate('/', { replace: true });
+
+      // Force reload to ensure all state is cleared
+      setTimeout(() => {
+        window.location.href = '/';
+      }, 100);
     } catch (error) {
       toast.error('Failed to logout');
       console.error('Logout error:', error);
+
+      // Even on error, try to navigate away
+      navigate('/', { replace: true });
     }
   };
 
