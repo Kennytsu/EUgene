@@ -145,10 +145,13 @@ class ApiClient {
   /**
    * Save reviewed company profiles to database
    */
-  async saveCompanyProfiles(profiles: CompanyProfileSimple[]): Promise<CompanyProfileSimpleListResponse> {
+  async saveCompanyProfiles(profiles: CompanyProfileSimple[], userId: string): Promise<CompanyProfileSimpleListResponse> {
     return this.request<CompanyProfileSimpleListResponse>('/companies/profiles/save', {
       method: 'POST',
-      body: JSON.stringify(profiles),
+      body: JSON.stringify({
+        profiles,
+        user_id: userId,
+      }),
     });
   }
 

@@ -1,9 +1,9 @@
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { 
-  LayoutDashboard, 
-  Columns3, 
-  MessageSquare, 
+import {
+  LayoutDashboard,
+  Columns3,
+  MessageSquare,
   Settings,
   LogOut,
   Menu,
@@ -12,6 +12,8 @@ import {
 import { useState } from "react";
 import { cn } from "@/lib/utils";
 import euStars from "@/assets/eu-stars.png";
+import { useAuth } from "@/contexts/AuthContext";
+import { toast } from "sonner";
 
 const navItems = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
@@ -22,7 +24,20 @@ const navItems = [
 
 export function Navbar() {
   const location = useLocation();
+  const navigate = useNavigate();
+  const { signOut } = useAuth();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+  const handleLogout = async () => {
+    try {
+      await signOut();
+      toast.success('Logged out successfully');
+      navigate('/');
+    } catch (error) {
+      toast.error('Failed to logout');
+      console.error('Logout error:', error);
+    }
+  };
 
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 bg-background border-b border-border">
@@ -55,11 +70,15 @@ export function Navbar() {
 
           {/* Desktop Actions */}
           <div className="hidden md:flex items-center">
-            <Link to="/">
-              <Button variant="ghost" size="sm" className="text-muted-foreground">
-                <LogOut className="w-4 h-4" />
-              </Button>
-            </Link>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="text-muted-foreground hover:text-foreground gap-2"
+              onClick={handleLogout}
+            >
+              <LogOut className="w-4 h-4" />
+              Log out
+            </Button>
           </div>
 
           {/* Mobile Menu Button */}
@@ -83,8 +102,8 @@ export function Navbar() {
             {navItems.map((item) => {
               const isActive = location.pathname === item.href;
               return (
-                <Link 
-                  key={item.href} 
+                <Link
+                  key={item.href}
                   to={item.href}
                   onClick={() => setMobileMenuOpen(false)}
                 >
@@ -99,6 +118,20 @@ export function Navbar() {
                 </Link>
               );
             })}
+
+            {/* Logout button in mobile menu */}
+            <Button
+              variant="ghost"
+              className="w-full justify-start gap-2 text-muted-foreground"
+              size="sm"
+              onClick={() => {
+                setMobileMenuOpen(false);
+                handleLogout();
+              }}
+            >
+              <LogOut className="w-4 h-4" />
+              Log out
+            </Button>
           </div>
         </div>
       )}

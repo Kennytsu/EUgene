@@ -18,6 +18,7 @@ from app.models.company_profile import (
     CompanyProfileListResponse,
     CompanyProfileSimple,
     CompanyProfileSimpleListResponse,
+    SaveProfilesRequest,
 )
 
 # Only import supabase if configured (not needed for scraping-only mode)
@@ -99,13 +100,13 @@ async def scrape_companies(request: CompanyScrapeRequest):
 
 
 @router.post("/profiles/save", response_model=CompanyProfileSimpleListResponse)
-async def save_company_profiles(profiles: list[CompanyProfileSimple]):
+async def save_company_profiles(request: SaveProfilesRequest):
     """
     Save reviewed company profiles to database
     (Called after user reviews and confirms topics)
 
     Args:
-        profiles: List of company profiles with user-confirmed topics
+        request: SaveProfilesRequest containing profiles and user_id
 
     Returns:
         CompanyProfileSimpleListResponse with saved profiles
@@ -117,15 +118,16 @@ async def save_company_profiles(profiles: list[CompanyProfileSimple]):
         )
 
     try:
-        logger.info(f"Saving {len(profiles)} company profiles to database")
+        logger.info(f"Saving {len(request.profiles)} company profiles to database for user {request.user_id}")
 
         saved_profiles = []
         errors = []
 
-        for profile in profiles:
+        for profile in request.profiles:
             try:
                 # Prepare data for Supabase
                 profile_data = {
+                    "user_id": request.user_id,
                     "company_name": profile.company_name,
                     "website_url": profile.website_url,
                     "description": profile.description,
