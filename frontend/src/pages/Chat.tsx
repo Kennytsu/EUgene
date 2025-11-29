@@ -3,6 +3,7 @@ import { AppLayout } from "@/components/layout/AppLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
+import ReactMarkdown from "react-markdown";
 import { 
   Send, 
   Bot, 
@@ -22,6 +23,7 @@ import {
   useUpdateChatSession,
   useDeleteChatSession,
 } from "@/hooks/useChatSessions";
+import { useRagQuery } from "@/hooks/use-rag-query";
 import { ScrollArea } from "@/components/ui/scroll-area";
 
 const suggestedPrompts = [
@@ -46,11 +48,22 @@ export default function Chat() {
   const addMessage = useAddChatMessage();
   const updateSession = useUpdateChatSession();
   const deleteSession = useDeleteChatSession();
+  const ragQuery = useRagQuery();
 
   // Auto-select first session if none is selected
   useEffect(() => {
     if (!currentSessionId && sessions.length > 0) {
-      setCurrentSessionId(sessions[0].id);
+      const firstSession = sessions[0];
+      setCurrentSessionId(firstSession.id);
+      
+      // Check if session has the greeting message
+      if (messages.length === 0) {
+        addMessage.mutate({
+          sessionId: firstSession.id,
+          content: "Hello! I'm your AI regulatory assistant. What would you like to know about EU regulations?",
+          author: "assistant",
+        });
+      }
     }
   }, [sessions, currentSessionId]);
 
@@ -93,26 +106,8 @@ export default function Chat() {
     const messageText = text || input;
     if (!messageText.trim() || isLoading) return;
 
-    // Create a new session if none exists
-    if (!currentSessionId) {
-      const session = await createSession.mutateAsync("New Chat");
-      setCurrentSessionId(session.id);
-      
-      // Add initial assistant message
-      await addMessage.mutateAsync({
-        sessionId: session.id,
-        content: "Hello! I'm your AI regulatory assistant. What would you like to know about EU regulations?",
-        author: "assistant",
-      });
-
-      // Now send the user message
-      await addMessage.mutateAsync({
-        sessionId: session.id,
-        content: messageText,
-        author: "user",
-      });
-    } else {
-      // Add user message to existing session
+    // Add user message to current session
+    if (currentSessionId) {
       await addMessage.mutateAsync({
         sessionId: currentSessionId,
         content: messageText,
@@ -120,7 +115,7 @@ export default function Chat() {
       });
 
       // Update session title if it's the first user message
-      if (messages.length <= 1) {
+      if (messages.length === 1) {
         const title = messageText.slice(0, 50) + (messageText.length > 50 ? "..." : "");
         await updateSession.mutateAsync({ sessionId: currentSessionId, title });
       }
@@ -129,33 +124,41 @@ export default function Chat() {
     setInput("");
     setIsLoading(true);
 
-    // Simulate AI response (replace with actual API call)
-    setTimeout(async () => {
-      const responses: Record<string, string> = {
-        "ai act": "The AI Act is the EU's regulation on artificial intelligence. For healthcare AI, your system is likely classified as high-risk. Key requirements: risk management system, data quality documentation, human oversight capabilities, and EU database registration. Deadline: August 2026.",
-        "health data": "The European Health Data Space (EHDS) regulation affects how health data is accessed and shared. Key points: patients get easier cross-border data access, new framework for research use of health data, and standard data formats (HL7 FHIR) will be required.",
-        "prioritize": "This week's priorities:\n\n1. AI Act Implementation Guidelines - Review the new guidelines for high-risk AI systems\n2. Health Data Vote (Feb 20) - Monitor the outcome\n3. AI Liability Directive - Background monitoring only",
-      };
+    // Call RAG endpoint to get AI response
+    try {
+      const result = await ragQuery.mutateAsync({ 
+        query: messageText,
+        top_k: 10 
+      });
 
-      let response = "I can help you understand EU regulations. Could you be more specific about which regulation or topic you'd like to explore?";
+      if (result.success && currentSessionId) {
+        // Use only the LLM answer without similarity scores or emojis
+        const formattedResponse = result.llm_answer;
 
-      for (const [key, value] of Object.entries(responses)) {
-        if (messageText.toLowerCase().includes(key)) {
-          response = value;
-          break;
-        }
-      }
-
-      if (currentSessionId) {
         await addMessage.mutateAsync({
           sessionId: currentSessionId,
-          content: response,
+          content: formattedResponse,
+          author: "assistant",
+        });
+      } else if (currentSessionId) {
+        await addMessage.mutateAsync({
+          sessionId: currentSessionId,
+          content: "I encountered an issue retrieving regulatory information. Please try again.",
           author: "assistant",
         });
       }
-
+    } catch (error) {
+      console.error("RAG query error:", error);
+      if (currentSessionId) {
+        await addMessage.mutateAsync({
+          sessionId: currentSessionId,
+          content: "I encountered an error while processing your query. Please try again later.",
+          author: "assistant",
+        });
+      }
+    } finally {
       setIsLoading(false);
-    }, 1000);
+    }
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
@@ -310,11 +313,22 @@ export default function Chat() {
                         : "bg-primary text-primary-foreground"
                     )}
                   >
-                    {message.content?.split('\n').map((line, i) => (
-                      <p key={i} className="mb-1 last:mb-0">
-                        {line}
-                      </p>
-                    ))}
+                    <ReactMarkdown
+                      components={{
+                        h1: ({node, ...props}) => <h1 className="text-lg font-bold mb-2 mt-2" {...props} />,
+                        h2: ({node, ...props}) => <h2 className="text-base font-bold mb-2 mt-2" {...props} />,
+                        h3: ({node, ...props}) => <h3 className="text-sm font-bold mb-1 mt-1" {...props} />,
+                        p: ({node, ...props}) => <p className="mb-2" {...props} />,
+                        ul: ({node, ...props}) => <ul className="list-disc list-inside mb-2" {...props} />,
+                        ol: ({node, ...props}) => <ol className="list-decimal list-inside mb-2" {...props} />,
+                        li: ({node, ...props}) => <li className="mb-1" {...props} />,
+                        strong: ({node, ...props}) => <strong className="font-bold" {...props} />,
+                        em: ({node, ...props}) => <em className="italic" {...props} />,
+                        code: ({node, ...props}) => <code className="bg-muted px-1 py-0.5 rounded text-xs" {...props} />,
+                      }}
+                    >
+                      {message.content || ""}
+                    </ReactMarkdown>
                   </div>
                 </div>
               ))}
