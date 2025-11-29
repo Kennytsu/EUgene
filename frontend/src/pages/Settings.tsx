@@ -11,12 +11,11 @@ import { useAuth } from "@/contexts/AuthContext";
 // Available regulatory topics (matching backend enum)
 const REGULATORY_TOPICS = [
   "AI Act",
-  "Bafin",
+  "BaFin",
   "Cybersecurity",
-  "Gdpr",
-  "Aml",
-  "kyc",
-  "Esg",
+  "GDPR",
+  "AMLR",
+  "ESG",
 ] as const;
 
 export default function Settings() {
@@ -105,6 +104,17 @@ export default function Settings() {
     setIsSaving(true);
 
     try {
+      // Save topics to company profiles
+      if (companyProfiles.length > 0) {
+        // Update the first company profile with selected topics
+        // (You can modify this logic if you want to update all profiles or handle differently)
+        const profileToUpdate = companyProfiles[0];
+        
+        await apiClient.updateCompanyProfile(profileToUpdate.id!, {
+          regulatory_topics: selectedTopics,
+        });
+      }
+
       // Save all contact updates
       const updatePromises = contacts
         .filter(contact => contact.id) // Only update existing contacts
@@ -149,6 +159,12 @@ export default function Settings() {
       const contactsResult = await apiClient.listUserContacts(user.id, true);
       if (contactsResult.success) {
         setContacts(contactsResult.data);
+      }
+
+      // Refresh company profiles
+      const profilesResult = await apiClient.listCompanies({ user_id: user.id });
+      if (profilesResult.success && profilesResult.data.length > 0) {
+        setCompanyProfiles(profilesResult.data);
       }
     } catch (error) {
       console.error('Error saving settings:', error);
