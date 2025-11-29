@@ -4,26 +4,87 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ArrowRight, Shield, Zap, Bell, Bot } from "lucide-react";
 import euStars from "@/assets/eu-stars.png";
+import { apiClient, CompanyProfile } from "@/lib/api-client";
+import { useToast } from "@/hooks/use-toast";
+import { BackendConnectionTest } from "@/components/BackendConnectionTest";
 
 export default function Landing() {
-  const [url, setUrl] = useState("");
+  const [urls, setUrls] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [scrapedData, setScrapedData] = useState<CompanyProfile[]>([]);
   const navigate = useNavigate();
+  const { toast } = useToast();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!url) return;
-    
+    if (!urls) return;
+
     setIsLoading(true);
-    setTimeout(() => {
-      navigate("/onboarding", { state: { websiteUrl: url } });
-    }, 1000);
+    setScrapedData([]);
+
+    try {
+      // Split URLs by comma or newline
+      const urlList = urls
+        .split(/[,\n]/)
+        .map((u) => u.trim())
+        .filter(Boolean);
+
+      const results: CompanyProfile[] = [];
+      for (const url of urlList) {
+        try {
+          // Extract company name from URL (simple approach)
+          const companyName = new URL(url).hostname
+            .replace("www.", "")
+            .split(".")[0];
+
+          const result = await apiClient.scrapeCompany({
+            company_name: companyName,
+            website_url: url,
+          });
+
+          if (result.success && result.data) {
+            results.push(result.data);
+          }
+
+          toast({
+            title: "Success",
+            description: `Scraped ${companyName} successfully`,
+          });
+        } catch (error) {
+          console.error(`Failed to scrape ${url}:`, error);
+          toast({
+            title: "Error",
+            description: `Failed to scrape ${url}`,
+            variant: "destructive",
+          });
+        }
+      }
+
+      setScrapedData(results);
+    } catch (error) {
+      console.error("Scraping failed:", error);
+      toast({
+        title: "Error",
+        description: "Failed to scrape companies",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const features = [
-    { icon: Shield, title: "Stay Compliant", description: "Never miss a regulation" },
+    {
+      icon: Shield,
+      title: "Stay Compliant",
+      description: "Never miss a regulation",
+    },
     { icon: Zap, title: "AI Insights", description: "Smart summaries for you" },
-    { icon: Bell, title: "Real-time Alerts", description: "Email, SMS, or calls" },
+    {
+      icon: Bell,
+      title: "Real-time Alerts",
+      description: "Email, SMS, or calls",
+    },
     { icon: Bot, title: "AI Assistant", description: "Ask anything" },
   ];
 
@@ -36,7 +97,11 @@ export default function Landing() {
             <img src={euStars} alt="EUgene" className="w-5 h-5" />
             <span className="font-semibold text-foreground">EUgene</span>
           </div>
-          <Button variant="ghost" size="sm" onClick={() => navigate("/dashboard")}>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => navigate("/dashboard")}
+          >
             Sign In
           </Button>
         </nav>
@@ -45,8 +110,10 @@ export default function Landing() {
       {/* Hero */}
       <main className="px-6 py-20">
         <div className="max-w-2xl mx-auto text-center">
-          <p className="text-sm text-muted-foreground mb-4">EU Regulatory Intelligence</p>
-          
+          <p className="text-sm text-muted-foreground mb-4">
+            EU Regulatory Intelligence
+          </p>
+
           <h1 className="text-3xl sm:text-4xl font-semibold text-foreground mb-4 tracking-tight">
             We watch the EU so you don't have to
           </h1>
@@ -59,10 +126,10 @@ export default function Landing() {
           <form onSubmit={handleSubmit} className="max-w-md mx-auto mb-16">
             <div className="flex gap-2">
               <Input
-                type="url"
-                placeholder="Enter your company website..."
-                value={url}
-                onChange={(e) => setUrl(e.target.value)}
+                type="text"
+                placeholder="Enter company websites (comma-separated)..."
+                value={urls}
+                onChange={(e) => setUrls(e.target.value)}
                 className="flex-1"
               />
               <Button type="submit" disabled={isLoading}>
@@ -70,9 +137,61 @@ export default function Landing() {
               </Button>
             </div>
             <p className="text-xs text-muted-foreground mt-2">
-              We'll analyze your site and suggest relevant regulations
+              We'll analyze your sites and suggest relevant regulations
             </p>
           </form>
+
+          {/* Scraped Results */}
+          {scrapedData.length > 0 && (
+            <div className="max-w-4xl mx-auto mb-16">
+              <h3 className="text-lg font-semibold mb-4">Analysis Results</h3>
+              <div className="space-y-4">
+                {scrapedData.map((data, idx) => (
+                  <div key={idx} className="p-4 border rounded-lg bg-card">
+                    <h4 className="font-semibold mb-2">{data.company_name}</h4>
+                    <div className="text-sm space-y-2">
+                      {data.regulatory_topics &&
+                        data.regulatory_topics.length > 0 && (
+                          <div>
+                            <span className="font-medium">
+                              Regulatory Topics:{" "}
+                            </span>
+                            <span className="text-muted-foreground">
+                              {data.regulatory_topics.join(", ")}
+                            </span>
+                          </div>
+                        )}
+                      {data.industry && (
+                        <div>
+                          <span className="font-medium">Industry: </span>
+                          <span className="text-muted-foreground">
+                            {data.industry}
+                          </span>
+                        </div>
+                      )}
+                      {data.technologies_used &&
+                        data.technologies_used.length > 0 && (
+                          <div>
+                            <span className="font-medium">Technologies: </span>
+                            <span className="text-muted-foreground">
+                              {data.technologies_used.join(", ")}
+                            </span>
+                          </div>
+                        )}
+                    </div>
+                    <details className="mt-3">
+                      <summary className="text-xs text-muted-foreground cursor-pointer">
+                        View full JSON
+                      </summary>
+                      <pre className="mt-2 p-2 bg-muted rounded text-xs overflow-auto">
+                        {JSON.stringify(data, null, 2)}
+                      </pre>
+                    </details>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* Features */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-6">
@@ -81,11 +200,20 @@ export default function Landing() {
                 <div className="w-10 h-10 rounded-lg bg-secondary flex items-center justify-center mx-auto mb-3">
                   <feature.icon className="w-5 h-5 text-muted-foreground" />
                 </div>
-                <h3 className="text-sm font-medium text-foreground mb-1">{feature.title}</h3>
-                <p className="text-xs text-muted-foreground">{feature.description}</p>
+                <h3 className="text-sm font-medium text-foreground mb-1">
+                  {feature.title}
+                </h3>
+                <p className="text-xs text-muted-foreground">
+                  {feature.description}
+                </p>
               </div>
             ))}
           </div>
+        </div>
+
+        {/* Backend Connection Test */}
+        <div className="max-w-4xl mx-auto mt-20">
+          <BackendConnectionTest />
         </div>
       </main>
 

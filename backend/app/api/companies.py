@@ -23,13 +23,14 @@ router = APIRouter(prefix="/companies", tags=["companies"])
 @router.post("/scrape", response_model=CompanyProfileResponse)
 async def scrape_company(request: CompanyProfileCreate):
     """
-    Scrape company information from website and/or Wikipedia and store in database
+    Scrape company information from website and/or Wikipedia and return JSON
+    (Does not store in database)
 
     Args:
         request: Company information (name, website_url, wikipedia_url)
 
     Returns:
-        CompanyProfileResponse with scraped data
+        CompanyProfileResponse with scraped data as JSON
     """
     try:
         logger.info(f"Scraping company: {request.company_name}")
@@ -47,40 +48,9 @@ async def scrape_company(request: CompanyProfileCreate):
         # Add timestamp
         profile.last_scraped_at = datetime.utcnow()
 
-        # Convert to dict for Supabase
-        profile_dict = profile.model_dump(exclude={'id', 'created_at', 'updated_at'})
-
-        # Store in Supabase
-        try:
-            # Check if company already exists
-            existing = supabase.table("company_profiles").select("id").eq("company_name", request.company_name).execute()
-
-            if existing.data:
-                # Update existing record
-                result = supabase.table("company_profiles").update(profile_dict).eq("company_name", request.company_name).execute()
-                logger.info(f"Updated existing company profile for: {request.company_name}")
-            else:
-                # Insert new record
-                result = supabase.table("company_profiles").insert(profile_dict).execute()
-                logger.info(f"Created new company profile for: {request.company_name}")
-
-            if result.data:
-                profile = CompanyProfile(**result.data[0])
-                return CompanyProfileResponse(success=True, data=profile)
-            else:
-                return CompanyProfileResponse(
-                    success=False,
-                    error="Failed to store company profile in database"
-                )
-
-        except Exception as db_error:
-            logger.error(f"Database error: {db_error}")
-            # Return the scraped data even if DB storage failed
-            return CompanyProfileResponse(
-                success=True,
-                data=profile,
-                error=f"Data scraped but DB storage failed: {str(db_error)}"
-            )
+        # Return scraped data as JSON without storing in database
+        logger.info(f"Successfully scraped company: {request.company_name}")
+        return CompanyProfileResponse(success=True, data=profile)
 
     except Exception as e:
         logger.error(f"Error scraping company {request.company_name}: {e}", exc_info=True)

@@ -57,10 +57,13 @@ app.add_middleware(
 )
 
 # Include routers
+# Always include companies router (it returns JSON without requiring DB)
+from app.api.companies import router as companies_router
+app.include_router(companies_router)
+
+# Legislative files router requires Supabase
 if SUPABASE_CONFIGURED:
-    from app.api.companies import router as companies_router
     from app.api.legislative_files import router as legislative_files_router
-    app.include_router(companies_router)
     app.include_router(legislative_files_router)
 
 
