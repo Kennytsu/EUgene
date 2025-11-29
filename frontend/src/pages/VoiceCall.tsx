@@ -281,7 +281,11 @@ export default function VoiceCall() {
                 <div className="w-16 h-16 bg-blue-600 rounded-full flex items-center justify-center mx-auto mb-4 animate-pulse">
                   <img src={euStars} alt="EUgene" className="w-10 h-10" />
                 </div>
-                <p className="text-gray-600">Connecting to EUgene...</p>
+                <p className="text-gray-600 mb-4">Connecting to EUgene...</p>
+                <Button onClick={endCall} variant="outline" size="sm" className="gap-2">
+                  <PhoneOff className="w-4 h-4" />
+                  Cancel
+                </Button>
               </div>
             )}
 
