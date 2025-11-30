@@ -16,7 +16,8 @@ import {
   FileText,
   Calendar,
   Target,
-  BarChart3
+  BarChart3,
+  Phone
 } from "lucide-react";
 import { useMemo } from "react";
 import { Badge } from "@/components/ui/badge";
@@ -76,11 +77,14 @@ export default function Dashboard() {
       return new Date(item.date) >= weekAgo;
     }).length;
     
-    // Topic breakdown
+    // Topic breakdown - only include user's configured topics
     const topicCounts: Record<string, number> = {};
     personalizedItems.forEach(item => {
       item.topics?.forEach(topic => {
-        topicCounts[topic] = (topicCounts[topic] || 0) + 1;
+        // Only count topics that are in the user's configured topics
+        if (userTopics.length === 0 || userTopics.includes(topic)) {
+          topicCounts[topic] = (topicCounts[topic] || 0) + 1;
+        }
       });
     });
     
@@ -89,7 +93,7 @@ export default function Dashboard() {
       .slice(0, 5);
 
     return { total, active, thisWeek, topTopics };
-  }, [personalizedItems]);
+  }, [personalizedItems, userTopics]);
 
   return (
     <AppLayout>
@@ -99,7 +103,7 @@ export default function Dashboard() {
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div>
               <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
-                <Sparkles className="h-6 w-6 text-primary" />
+                <Sparkles className="h-6 w-6" />
                 Welcome Back
               </h1>
               <p className="text-sm text-muted-foreground mt-1">
@@ -116,10 +120,10 @@ export default function Dashboard() {
                   Ask AI
                 </Button>
               </Link>
-              <Link to="/board">
+              <Link to="/voice-call">
                 <Button size="sm" className="gap-2">
-                  <Target className="w-4 h-4" />
-                  View Board
+                  <Phone className="w-4 h-4" />
+                  Talk to EUgene
                 </Button>
               </Link>
             </div>
@@ -133,7 +137,7 @@ export default function Dashboard() {
             <>
               {/* Key Metrics */}
               <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                <Card className="border-l-4 border-l-primary">
+                <Card>
                   <CardHeader className="pb-2">
                     <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
                       <FileText className="h-4 w-4" />
@@ -148,7 +152,7 @@ export default function Dashboard() {
                   </CardContent>
                 </Card>
 
-                <Card className="border-l-4 border-l-green-500">
+                <Card>
                   <CardHeader className="pb-2">
                     <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
                       <TrendingUp className="h-4 w-4" />
@@ -156,14 +160,14 @@ export default function Dashboard() {
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <p className="text-3xl font-bold text-green-600">{stats.active}</p>
+                    <p className="text-3xl font-bold text-foreground">{stats.active}</p>
                     <p className="text-xs text-muted-foreground mt-1">
                       In progress
                     </p>
                   </CardContent>
                 </Card>
 
-                <Card className="border-l-4 border-l-orange-500">
+                <Card>
                   <CardHeader className="pb-2">
                     <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
                       <Clock className="h-4 w-4" />
@@ -171,14 +175,14 @@ export default function Dashboard() {
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <p className="text-3xl font-bold text-orange-600">{stats.thisWeek}</p>
+                    <p className="text-3xl font-bold text-foreground">{stats.thisWeek}</p>
                     <p className="text-xs text-muted-foreground mt-1">
                       New updates
                     </p>
                   </CardContent>
                 </Card>
 
-                <Card className="border-l-4 border-l-blue-500">
+                <Card>
                   <CardHeader className="pb-2">
                     <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
                       <AlertCircle className="h-4 w-4" />
@@ -186,7 +190,7 @@ export default function Dashboard() {
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <p className="text-3xl font-bold text-blue-600">{userTopics.length || "—"}</p>
+                    <p className="text-3xl font-bold text-foreground">{userTopics.length || "—"}</p>
                     <p className="text-xs text-muted-foreground mt-1">
                       Monitored areas
                     </p>
@@ -203,7 +207,7 @@ export default function Dashboard() {
                     <CardHeader>
                       <div className="flex items-center justify-between">
                         <CardTitle className="text-base flex items-center gap-2">
-                          <Calendar className="h-5 w-5 text-primary" />
+                          <Calendar className="h-5 w-5" />
                           Recent Updates
                         </CardTitle>
                         <Link to="/board">
@@ -237,7 +241,7 @@ export default function Dashboard() {
                   <Card>
                     <CardHeader>
                       <CardTitle className="text-base flex items-center gap-2">
-                        <Target className="h-5 w-5 text-orange-500" />
+                        <Target className="h-5 w-5" />
                         Active & Requiring Attention
                       </CardTitle>
                     </CardHeader>
@@ -297,7 +301,7 @@ export default function Dashboard() {
                   <Card>
                     <CardHeader>
                       <CardTitle className="text-base flex items-center gap-2">
-                        <BarChart3 className="h-5 w-5 text-primary" />
+                        <BarChart3 className="h-5 w-5" />
                         Your Topics
                       </CardTitle>
                     </CardHeader>
@@ -337,7 +341,7 @@ export default function Dashboard() {
                     <Card>
                       <CardHeader>
                         <CardTitle className="text-base flex items-center gap-2">
-                          <TrendingUp className="h-5 w-5 text-green-500" />
+                          <TrendingUp className="h-5 w-5" />
                           Most Active Topics
                         </CardTitle>
                       </CardHeader>
@@ -353,9 +357,9 @@ export default function Dashboard() {
                                     {count} ({percentage}%)
                                   </span>
                                 </div>
-                                <div className="w-full bg-secondary rounded-full h-2">
+                                <div className="w-full bg-secondary rounded-full h-1.5">
                                   <div
-                                    className="bg-primary rounded-full h-2 transition-all"
+                                    className="bg-foreground/60 rounded-full h-1.5 transition-all"
                                     style={{ width: `${percentage}%` }}
                                   />
                                 </div>
@@ -390,6 +394,12 @@ export default function Dashboard() {
                           <Button variant="outline" size="sm" className="w-full justify-start gap-2">
                             <AlertCircle className="h-4 w-4" />
                             Manage Topics
+                          </Button>
+                        </Link>
+                        <Link to="/voice-call">
+                          <Button variant="outline" size="sm" className="w-full justify-start gap-2">
+                            <Phone className="h-4 w-4" />
+                            Talk to EUgene
                           </Button>
                         </Link>
                       </div>

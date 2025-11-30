@@ -2,7 +2,9 @@ import { useState, useEffect, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import Vapi from '@vapi-ai/web';
 import { Button } from '@/components/ui/button';
-import { Phone, PhoneOff, AlertCircle, Loader2 } from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Phone, PhoneOff, AlertCircle, Loader2, Calendar, Target } from 'lucide-react';
+import { AppLayout } from '@/components/layout/AppLayout';
 import { apiClient, RegulatoryUpdatePayload } from '@/lib/api-client';
 import {
   VAPI_PUBLIC_KEY,
@@ -143,30 +145,36 @@ export default function VoiceCall() {
   // Render error state
   if (callStatus === 'error') {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-red-50 to-orange-50 p-4">
-        <div className="max-w-md w-full bg-white rounded-lg shadow-lg p-8 text-center">
-          <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
-            <AlertCircle className="w-8 h-8 text-red-600" />
-          </div>
-          <h1 className="text-2xl font-semibold text-gray-900 mb-2">Call Unavailable</h1>
-          <p className="text-gray-600 mb-6">{error}</p>
-          <Button onClick={() => window.location.href = '/'} variant="outline">
-            Return to Home
-          </Button>
+      <AppLayout>
+        <div className="h-[calc(100vh-3.5rem)] flex items-center justify-center p-4">
+          <Card className="max-w-md w-full">
+            <CardContent className="pt-6 text-center">
+              <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center mx-auto mb-4">
+                <AlertCircle className="w-8 h-8 text-muted-foreground" />
+              </div>
+              <h1 className="text-2xl font-semibold mb-2">Call Unavailable</h1>
+              <p className="text-muted-foreground mb-6">{error}</p>
+              <Button onClick={() => window.location.href = '/'} variant="outline">
+                Return to Home
+              </Button>
+            </CardContent>
+          </Card>
         </div>
-      </div>
+      </AppLayout>
     );
   }
 
   // Render loading state
   if (callStatus === 'loading') {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-50">
-        <div className="text-center">
-          <Loader2 className="w-12 h-12 animate-spin text-blue-600 mx-auto mb-4" />
-          <p className="text-gray-600">Loading call information...</p>
+      <AppLayout>
+        <div className="h-[calc(100vh-3.5rem)] flex items-center justify-center">
+          <div className="text-center">
+            <Loader2 className="w-12 h-12 animate-spin text-muted-foreground mx-auto mb-4" />
+            <p className="text-muted-foreground">Loading call information...</p>
+          </div>
         </div>
-      </div>
+      </AppLayout>
     );
   }
 
@@ -176,182 +184,183 @@ export default function VoiceCall() {
   const impactIcon = hasPayload ? getImpactLevelIcon(payload.impact_level) : '';
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-50 p-4">
-      <div className="max-w-2xl mx-auto py-8">
-        {/* Header */}
-        <div className="bg-white rounded-lg shadow-md p-6 mb-6">
-          <div className="flex items-center gap-3 mb-4">
+    <AppLayout>
+      <div className="h-[calc(100vh-3.5rem)] overflow-y-auto">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 py-6 space-y-6">
+          {/* Header */}
+          <div className="flex items-center gap-3">
             <img src={euStars} alt="EUgene" className="w-10 h-10" />
             <div>
-              <h1 className="text-2xl font-semibold text-gray-900">EUgene Call</h1>
-              <p className="text-sm text-gray-500">Your EU Regulatory Assistant</p>
+              <h1 className="text-2xl font-bold">EUgene Voice Call</h1>
+              <p className="text-sm text-muted-foreground">Your EU Regulatory Assistant</p>
             </div>
           </div>
 
           {/* Call Information - Show different content based on mode */}
           {hasPayload ? (
-            <div className="space-y-4">
-              <div>
-                <p className="text-sm text-gray-500 mb-1">Calling:</p>
-                <p className="text-lg font-medium text-gray-900">{payload.user_name}</p>
-              </div>
-
-              <div className={`p-4 rounded-lg border ${impactColorClass}`}>
-                <div className="flex items-center gap-2 mb-2">
-                  <span className="text-2xl">{impactIcon}</span>
-                  <p className="font-semibold capitalize">{payload.impact_level} Impact</p>
-                </div>
-                <p className="text-sm font-medium">
-                  {payload.regulation_type} - {payload.regulation_title}
-                </p>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4 text-sm">
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base">Call Information</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
                 <div>
-                  <p className="text-gray-500">Effective Date</p>
-                  <p className="font-medium">{new Date(payload.effective_date).toLocaleDateString()}</p>
+                  <p className="text-sm text-muted-foreground mb-1">Calling:</p>
+                  <p className="text-lg font-medium">{payload.user_name}</p>
                 </div>
-                <div>
-                  <p className="text-gray-500">Action Deadline</p>
-                  <p className="font-medium">{new Date(payload.deadline).toLocaleDateString()}</p>
-                </div>
-              </div>
 
-              <div>
-                <p className="text-sm text-gray-500 mb-1">Summary:</p>
-                <p className="text-sm text-gray-700">{payload.summary}</p>
-              </div>
-            </div>
+                <div className={`p-4 rounded-lg border ${impactColorClass}`}>
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className="text-2xl">{impactIcon}</span>
+                    <p className="font-semibold capitalize">{payload.impact_level} Impact</p>
+                  </div>
+                  <p className="text-sm font-medium">
+                    {payload.regulation_type} - {payload.regulation_title}
+                  </p>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4 text-sm">
+                  <div>
+                    <p className="text-muted-foreground flex items-center gap-1">
+                      <Calendar className="h-4 w-4" />
+                      Effective Date
+                    </p>
+                    <p className="font-medium mt-1">{new Date(payload.effective_date).toLocaleDateString()}</p>
+                  </div>
+                  <div>
+                    <p className="text-muted-foreground flex items-center gap-1">
+                      <Target className="h-4 w-4" />
+                      Action Deadline
+                    </p>
+                    <p className="font-medium mt-1">{new Date(payload.deadline).toLocaleDateString()}</p>
+                  </div>
+                </div>
+
+                <div>
+                  <p className="text-sm text-muted-foreground mb-1">Summary:</p>
+                  <p className="text-sm">{payload.summary}</p>
+                </div>
+              </CardContent>
+            </Card>
           ) : (
-            <div className="space-y-4">
-              <div className="p-6 rounded-lg bg-blue-50 border border-blue-200">
-                <h2 className="text-lg font-semibold text-gray-900 mb-2">
-                  General EU Regulatory Assistant
-                </h2>
-                <p className="text-sm text-gray-700">
-                  I'm EUgene, your AI assistant for EU regulatory compliance.
-                  I can help you understand regulations like GDPR, AI Act, Cybersecurity,
-                  AML, KYC, ESG, and more. Ask me anything about EU compliance!
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base">General EU Regulatory Assistant</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-sm text-muted-foreground">
+                  Ask me anything about EU regulatory compliance including GDPR, AI Act, Cybersecurity,
+                  AMLR, ESG, and more.
                 </p>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Call Controls */}
+          <Card>
+            <CardContent className="pt-6">
+              <div className="text-center">
+                {callStatus === 'idle' && (
+                  <div>
+                    <div className="mb-6">
+                      <p className="text-muted-foreground mb-4">
+                        {hasPayload ? (
+                          <>
+                            Ready to discuss this regulatory update with you.
+                            Click the button below to start a voice call.
+                          </>
+                        ) : (
+                          <>
+                            Ready to answer your questions about EU regulations and compliance requirements.
+                            Click the button below to start a voice call.
+                          </>
+                        )}
+                      </p>
+                    </div>
+                    <Button onClick={startCall} size="lg" className="gap-2">
+                      <Phone className="w-5 h-5" />
+                      Start Call
+                    </Button>
+                  </div>
+                )}
+
+                {callStatus === 'connecting' && (
+                  <div>
+                    <div className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 animate-pulse">
+                      <img src={euStars} alt="EUgene" className="w-16 h-16" />
+                    </div>
+                    <p className="text-muted-foreground mb-4">Connecting...</p>
+                    <Button onClick={endCall} variant="outline" size="sm" className="gap-2">
+                      <PhoneOff className="w-4 h-4" />
+                      Cancel
+                    </Button>
+                  </div>
+                )}
+
+                {callStatus === 'connected' && (
+                  <div>
+                    <div className="relative inline-block mb-6">
+                      <div className={`w-28 h-28 rounded-full flex items-center justify-center ${isAgentSpeaking ? 'animate-pulse' : ''}`}>
+                        <img src={euStars} alt="EUgene" className="w-28 h-28" />
+                      </div>
+                      {isAgentSpeaking && (
+                        <div className="absolute -bottom-2 left-1/2 transform -translate-x-1/2 bg-foreground text-background text-xs px-3 py-1 rounded-full flex items-center gap-1">
+                          <span className="w-2 h-2 bg-background rounded-full animate-pulse"></span>
+                          Speaking...
+                        </div>
+                      )}
+                    </div>
+                    <p className="text-lg font-medium mb-1">Connected</p>
+                    <p className="text-sm text-muted-foreground mb-6">
+                      {isAgentSpeaking ? '🎤 Speaking...' : '👂 Listening...'}
+                    </p>
+                    <Button onClick={endCall} variant="destructive" size="lg" className="gap-2">
+                      <PhoneOff className="w-5 h-5" />
+                      End Call
+                    </Button>
+                  </div>
+                )}
+
+                {callStatus === 'ended' && (
+                  <div>
+                    <div className="w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4">
+                      <img src={euStars} alt="EUgene" className="w-20 h-20" />
+                    </div>
+                    <p className="text-lg font-medium mb-2">Call Ended</p>
+                    <p className="text-muted-foreground mb-1">
+                      Thank you for speaking with EUgene!
+                    </p>
+                    <p className="text-sm text-muted-foreground mb-6">
+                      Stay informed, stay compliant.
+                    </p>
+                    <div className="flex gap-3 justify-center">
+                      <Button onClick={startCall} variant="outline">
+                        Call Again
+                      </Button>
+                      <Button onClick={() => window.location.href = '/dashboard'}>
+                        Go to Dashboard
+                      </Button>
+                    </div>
+                  </div>
+                )}
               </div>
+            </CardContent>
+          </Card>
+
+          {/* Reference Link */}
+          {hasPayload && payload.reference_url && (
+            <div className="text-center">
+              <a
+                href={payload.reference_url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-sm text-primary hover:underline"
+              >
+                View Full Documentation →
+              </a>
             </div>
           )}
         </div>
-
-        {/* Call Controls */}
-        <div className="bg-white rounded-lg shadow-md p-8">
-          <div className="text-center">
-            {callStatus === 'idle' && (
-              <div>
-                <div className="mb-6">
-                  <div className="flex items-center gap-3 mb-3">
-                    <div className="w-12 h-12 bg-blue-600 rounded-full flex items-center justify-center">
-                      <img src={euStars} alt="EUgene" className="w-7 h-7" />
-                    </div>
-                    <div>
-                      <p className="font-medium text-gray-900">EUgene</p>
-                      <p className="text-sm text-gray-500">EU Regulatory Expert</p>
-                    </div>
-                  </div>
-                  <p className="text-gray-600">
-                    {hasPayload ? (
-                      <>
-                        Hi {payload.user_name}! I'm EUgene, your EU regulatory assistant.
-                        Click the button below to start a voice call where I'll explain this regulatory update
-                        and answer any questions you may have.
-                      </>
-                    ) : (
-                      <>
-                        Hi! I'm EUgene, your EU regulatory assistant.
-                        Click the button below to start a voice call and ask me anything about
-                        EU regulations, compliance requirements, or regulatory updates.
-                      </>
-                    )}
-                  </p>
-                </div>
-                <Button onClick={startCall} size="lg" className="gap-2">
-                  <Phone className="w-5 h-5" />
-                  Talk to EUgene
-                </Button>
-              </div>
-            )}
-
-            {callStatus === 'connecting' && (
-              <div>
-                <div className="w-16 h-16 bg-blue-600 rounded-full flex items-center justify-center mx-auto mb-4 animate-pulse">
-                  <img src={euStars} alt="EUgene" className="w-10 h-10" />
-                </div>
-                <p className="text-gray-600 mb-4">Connecting to EUgene...</p>
-                <Button onClick={endCall} variant="outline" size="sm" className="gap-2">
-                  <PhoneOff className="w-4 h-4" />
-                  Cancel
-                </Button>
-              </div>
-            )}
-
-            {callStatus === 'connected' && (
-              <div>
-                <div className="relative inline-block mb-6">
-                  <div className={`w-28 h-28 rounded-full bg-blue-600 flex items-center justify-center ${isAgentSpeaking ? 'animate-pulse shadow-lg shadow-blue-400' : ''}`}>
-                    <img src={euStars} alt="EUgene" className="w-16 h-16" />
-                  </div>
-                  {isAgentSpeaking && (
-                    <div className="absolute -bottom-2 left-1/2 transform -translate-x-1/2 bg-green-500 text-white text-xs px-3 py-1 rounded-full flex items-center gap-1">
-                      <span className="w-2 h-2 bg-white rounded-full animate-pulse"></span>
-                      EUgene is speaking...
-                    </div>
-                  )}
-                </div>
-                <p className="text-lg font-medium text-gray-900 mb-1">Connected to EUgene</p>
-                <p className="text-sm text-gray-500 mb-6">
-                  {isAgentSpeaking ? '🎤 Speaking...' : '👂 Listening...'}
-                </p>
-                <Button onClick={endCall} variant="destructive" size="lg" className="gap-2">
-                  <PhoneOff className="w-5 h-5" />
-                  End Call
-                </Button>
-              </div>
-            )}
-
-            {callStatus === 'ended' && (
-              <div>
-                <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <img src={euStars} alt="EUgene" className="w-12 h-12" />
-                </div>
-                <p className="text-lg font-medium text-gray-900 mb-2">Call Ended</p>
-                <p className="text-gray-600 mb-1">
-                  Thank you for speaking with EUgene!
-                </p>
-                <p className="text-sm text-gray-500 mb-6">
-                  Stay informed, stay compliant.
-                </p>
-                <div className="flex gap-3 justify-center">
-                  <Button onClick={startCall} variant="outline">
-                    Talk to EUgene Again
-                  </Button>
-                  <Button onClick={() => window.location.href = '/dashboard'}>
-                    Go to Dashboard
-                  </Button>
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Reference Link */}
-        {hasPayload && payload.reference_url && (
-          <div className="mt-6 text-center">
-            <a
-              href={payload.reference_url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-sm text-blue-600 hover:underline"
-            >
-              View Full Documentation →
-            </a>
-          </div>
-        )}
       </div>
-    </div>
+    </AppLayout>
   );
 }

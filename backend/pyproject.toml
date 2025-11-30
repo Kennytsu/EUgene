@@ -50,6 +50,9 @@ dependencies = [
     "langgraph-cli[inmem]>=0.4.7",
 ]
 
+[tool.poetry]
+package-mode = false
+
 [tool.ruff]
 line-length = 120
 ignore = ["I001"]

@@ -14,8 +14,13 @@ export function mapSubjectToTopic(subject: string): string | null {
   
   const normalized = subject.trim().toLowerCase();
   
-  // Check for AI Act
-  if (normalized.includes('ai act') || normalized === 'ai-act' || normalized === 'ai_act') {
+  // Check for AI Act - more flexible matching
+  if (normalized.includes('ai act') || 
+      normalized === 'ai-act' || 
+      normalized === 'ai_act' ||
+      normalized.includes('artificial intelligence act') ||
+      normalized.includes('artificial intelligence regulation') ||
+      (normalized.startsWith('ai ') || normalized === 'ai')) {
     return "AI Act";
   }
   

@@ -60,12 +60,40 @@ export default function Board() {
   useEffect(() => {
     if (legislativeItems.length > 0) {
       setItems(legislativeItems);
-      // Debug: Log topics to see what we're working with
-      console.log('Legislative items with topics:', legislativeItems.map(item => ({
-        title: item.title.slice(0, 50),
-        subjects: item.subjects,
-        topics: item.topics
-      })));
+      
+      // Debug: Log all unique topics found
+      const allTopicsSet = new Set<string>();
+      legislativeItems.forEach(item => {
+        item.topics?.forEach(topic => allTopicsSet.add(topic));
+      });
+      console.log('All unique topics found:', Array.from(allTopicsSet).sort());
+      
+      // Debug: Count items per topic
+      const topicCounts: Record<string, number> = {};
+      legislativeItems.forEach(item => {
+        item.topics?.forEach(topic => {
+          topicCounts[topic] = (topicCounts[topic] || 0) + 1;
+        });
+      });
+      console.log('Items per topic:', topicCounts);
+      
+      // Debug: Find items that might be AI-related
+      const aiRelated = legislativeItems.filter(item => 
+        item.title.toLowerCase().includes('artificial intelligence') ||
+        item.title.toLowerCase().includes('ai act') ||
+        item.subjects?.some(s => 
+          s.toLowerCase().includes('artificial intelligence') ||
+          s.toLowerCase().includes('ai act') ||
+          s.toLowerCase().includes('ai-act')
+        )
+      );
+      console.log(`Found ${aiRelated.length} items with AI in title or subjects:`, 
+        aiRelated.map(item => ({
+          title: item.title.slice(0, 80),
+          subjects: item.subjects,
+          mappedTopics: item.topics
+        }))
+      );
     }
   }, [legislativeItems]);
 
@@ -131,11 +159,13 @@ export default function Board() {
 
     // Topics filter
     if (selectedTopics.length > 0) {
+      console.log('🔍 Filtering by selected topics:', selectedTopics);
       filtered = filtered.filter(item => {
-        // Use the normalized topics from the item
         const itemTopics = item.topics || [];
-        return selectedTopics.some(topic => itemTopics.includes(topic));
+        const matches = selectedTopics.some(topic => itemTopics.includes(topic));
+        return matches;
       });
+      console.log(`✅ After topic filter: ${filtered.length} items remaining`);
     }
 
     // Sort
