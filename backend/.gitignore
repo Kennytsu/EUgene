@@ -48,6 +48,7 @@ Thumbs.db
 .pytest_cache/
 .coverage
 htmlcov/
+.langgraph_api
 
 # Playwright
 playwright/.local-browsers/
