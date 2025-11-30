@@ -3,22 +3,29 @@ import os
 from typing import AsyncIterator
 from contextlib import asynccontextmanager
 
+from dotenv import load_dotenv
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi_cache import FastAPICache
 from fastapi_cache.backends.inmemory import InMemoryBackend
+
+# Load environment variables from .env file
+load_dotenv()
 
 # Only import and setup scheduler if Supabase is configured
 SUPABASE_CONFIGURED = os.getenv("SUPABASE_PROJECT_URL", "").startswith("https://") and \
                       not os.getenv("SUPABASE_PROJECT_URL", "").endswith("placeholder.supabase.co")
 
 if SUPABASE_CONFIGURED:
-    from app.core.jobs import setup_scheduled_jobs
-    from app.core.scheduling import scheduler
+    try:
+        from app.core.jobs import setup_scheduled_jobs
+        from app.core.scheduling import scheduler
 
-    setup_scheduled_jobs()
-    scheduler.start()
-    logging.info("Scheduler started with legislative observatory scraping job")
+        setup_scheduled_jobs()
+        scheduler.start()
+        logging.info("Scheduler started with legislative observatory scraping job")
+    except Exception as e:
+        logging.warning(f"Scheduler disabled due to error: {e}")
 else:
     logging.warning("Supabase not configured - scheduler disabled. Set SUPABASE_PROJECT_URL to enable scraping.")
 
@@ -71,10 +78,19 @@ app.include_router(contacts_router)
 from app.api.voice_calls import router as voice_calls_router
 app.include_router(voice_calls_router)
 
-# Legislative files router requires Supabase
+# RAG and Legislative files routers require Supabase
 if SUPABASE_CONFIGURED:
-    from app.api.legislative_files import router as legislative_files_router
-    app.include_router(legislative_files_router)
+    try:
+        from app.api.rag import router as rag_router
+        app.include_router(rag_router)
+    except Exception as e:
+        logging.warning(f"RAG router disabled due to error: {e}")
+
+    try:
+        from app.api.legislative_files import router as legislative_files_router
+        app.include_router(legislative_files_router)
+    except Exception as e:
+        logging.warning(f"Legislative files router disabled due to error: {e}")
 
 
 @app.get("/")

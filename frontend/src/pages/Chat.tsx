@@ -4,25 +4,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import ReactMarkdown from "react-markdown";
-import { 
-  Send, 
-  Bot, 
-  User, 
-  Plus, 
-  MessageSquare, 
-  Trash2,
-  PanelLeftClose,
-  PanelLeft,
-  Edit2
-} from "lucide-react";
 import {
-  useChatSessions,
-  useChatMessages,
-  useCreateChatSession,
-  useAddChatMessage,
-  useUpdateChatSession,
-  useDeleteChatSession,
-} from "@/hooks/useChatSessions";
+  Send,
+  Bot,
+  User,
+} from "lucide-react";
 import { useRagQuery } from "@/hooks/use-rag-query";
 import { ScrollArea } from "@/components/ui/scroll-area";
 
@@ -32,40 +18,26 @@ const suggestedPrompts = [
   "What should we prioritize?",
 ];
 
+interface Message {
+  id: string;
+  content: string;
+  author: "user" | "assistant";
+  timestamp: number;
+}
+
 export default function Chat() {
-  const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
+  const [messages, setMessages] = useState<Message[]>([
+    {
+      id: "initial",
+      content: "Hello! I'm your AI regulatory assistant. What would you like to know about EU regulations?",
+      author: "assistant",
+      timestamp: Date.now(),
+    }
+  ]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const [sidebarOpen, setSidebarOpen] = useState(true);
-  const [editingSessionId, setEditingSessionId] = useState<string | null>(null);
-  const [editTitle, setEditTitle] = useState("");
   const messagesEndRef = useRef<HTMLDivElement>(null);
-
-  // Queries and mutations
-  const { data: sessions = [] } = useChatSessions();
-  const { data: messages = [] } = useChatMessages(currentSessionId);
-  const createSession = useCreateChatSession();
-  const addMessage = useAddChatMessage();
-  const updateSession = useUpdateChatSession();
-  const deleteSession = useDeleteChatSession();
   const ragQuery = useRagQuery();
-
-  // Auto-select first session if none is selected
-  useEffect(() => {
-    if (!currentSessionId && sessions.length > 0) {
-      const firstSession = sessions[0];
-      setCurrentSessionId(firstSession.id);
-      
-      // Check if session has the greeting message
-      if (messages.length === 0) {
-        addMessage.mutate({
-          sessionId: firstSession.id,
-          content: "Hello! I'm your AI regulatory assistant. What would you like to know about EU regulations?",
-          author: "assistant",
-        });
-      }
-    }
-  }, [sessions, currentSessionId]);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -75,87 +47,58 @@ export default function Chat() {
     scrollToBottom();
   }, [messages]);
 
-  const handleCreateNewChat = async () => {
-    const session = await createSession.mutateAsync("New Chat");
-    setCurrentSessionId(session.id);
-    
-    // Add initial assistant message
-    await addMessage.mutateAsync({
-      sessionId: session.id,
-      content: "Hello! I'm your AI regulatory assistant. What would you like to know about EU regulations?",
-      author: "assistant",
-    });
-  };
-
-  const handleDeleteSession = async (sessionId: string) => {
-    await deleteSession.mutateAsync(sessionId);
-    if (currentSessionId === sessionId) {
-      setCurrentSessionId(sessions[0]?.id || null);
-    }
-  };
-
-  const handleRenameSession = async (sessionId: string) => {
-    if (editTitle.trim()) {
-      await updateSession.mutateAsync({ sessionId, title: editTitle });
-      setEditingSessionId(null);
-      setEditTitle("");
-    }
-  };
-
   const handleSend = async (text?: string) => {
     const messageText = text || input;
     if (!messageText.trim() || isLoading) return;
 
-    // Add user message to current session
-    if (currentSessionId) {
-      await addMessage.mutateAsync({
-        sessionId: currentSessionId,
-        content: messageText,
-        author: "user",
-      });
-
-      // Update session title if it's the first user message
-      if (messages.length === 1) {
-        const title = messageText.slice(0, 50) + (messageText.length > 50 ? "..." : "");
-        await updateSession.mutateAsync({ sessionId: currentSessionId, title });
-      }
-    }
+    // Add user message to local state
+    const userMessage: Message = {
+      id: `user-${Date.now()}`,
+      content: messageText,
+      author: "user",
+      timestamp: Date.now(),
+    };
+    setMessages(prev => [...prev, userMessage]);
 
     setInput("");
     setIsLoading(true);
 
     // Call RAG endpoint to get AI response
     try {
-      const result = await ragQuery.mutateAsync({ 
+      const result = await ragQuery.mutateAsync({
         query: messageText,
-        top_k: 10 
+        top_k: 10
       });
 
-      if (result.success && currentSessionId) {
-        // Use only the LLM answer without similarity scores or emojis
-        const formattedResponse = result.llm_answer;
-
-        await addMessage.mutateAsync({
-          sessionId: currentSessionId,
-          content: formattedResponse,
+      if (result.success) {
+        // Add assistant message to local state
+        const assistantMessage: Message = {
+          id: `assistant-${Date.now()}`,
+          content: result.llm_answer,
           author: "assistant",
-        });
-      } else if (currentSessionId) {
-        await addMessage.mutateAsync({
-          sessionId: currentSessionId,
+          timestamp: Date.now(),
+        };
+        setMessages(prev => [...prev, assistantMessage]);
+      } else {
+        // Add error message
+        const errorMessage: Message = {
+          id: `error-${Date.now()}`,
           content: "I encountered an issue retrieving regulatory information. Please try again.",
           author: "assistant",
-        });
+          timestamp: Date.now(),
+        };
+        setMessages(prev => [...prev, errorMessage]);
       }
     } catch (error) {
       console.error("RAG query error:", error);
-      if (currentSessionId) {
-        await addMessage.mutateAsync({
-          sessionId: currentSessionId,
-          content: "I encountered an error while processing your query. Please try again later.",
-          author: "assistant",
-        });
-      }
+      // Add error message
+      const errorMessage: Message = {
+        id: `error-${Date.now()}`,
+        content: "I encountered an error while processing your query. Please try again later.",
+        author: "assistant",
+        timestamp: Date.now(),
+      };
+      setMessages(prev => [...prev, errorMessage]);
     } finally {
       setIsLoading(false);
     }
@@ -171,110 +114,10 @@ export default function Chat() {
   return (
     <AppLayout>
       <div className="h-[calc(100vh-3.5rem)] flex">
-        {/* Sidebar */}
-        <div
-          className={cn(
-            "border-r border-border bg-muted/30 flex flex-col transition-all duration-300",
-            sidebarOpen ? "w-64" : "w-0"
-          )}
-        >
-          {sidebarOpen && (
-            <>
-              {/* New Chat Button */}
-              <div className="p-3 border-b border-border">
-                <Button
-                  onClick={handleCreateNewChat}
-                  className="w-full"
-                  variant="outline"
-                >
-                  <Plus className="h-4 w-4 mr-2" />
-                  New Chat
-                </Button>
-              </div>
-
-              {/* Chat History */}
-              <ScrollArea className="flex-1">
-                <div className="p-2 space-y-1">
-                  {sessions.map((session) => (
-                    <div
-                      key={session.id}
-                      className={cn(
-                        "group flex items-center gap-2 px-3 py-2 rounded-md cursor-pointer hover:bg-muted transition-colors",
-                        currentSessionId === session.id && "bg-muted"
-                      )}
-                    >
-                      {editingSessionId === session.id ? (
-                        <Input
-                          value={editTitle}
-                          onChange={(e) => setEditTitle(e.target.value)}
-                          onBlur={() => handleRenameSession(session.id)}
-                          onKeyPress={(e) => {
-                            if (e.key === 'Enter') {
-                              handleRenameSession(session.id);
-                            }
-                          }}
-                          className="h-7 text-xs"
-                          autoFocus
-                        />
-                      ) : (
-                        <>
-                          <MessageSquare className="h-4 w-4 flex-shrink-0 text-muted-foreground" />
-                          <span
-                            onClick={() => setCurrentSessionId(session.id)}
-                            className="flex-1 text-xs truncate"
-                          >
-                            {session.title || "New Chat"}
-                          </span>
-                          <div className="opacity-0 group-hover:opacity-100 flex gap-1">
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-6 w-6"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setEditingSessionId(session.id);
-                                setEditTitle(session.title || "");
-                              }}
-                            >
-                              <Edit2 className="h-3 w-3" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-6 w-6 text-destructive"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleDeleteSession(session.id);
-                              }}
-                            >
-                              <Trash2 className="h-3 w-3" />
-                            </Button>
-                          </div>
-                        </>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              </ScrollArea>
-            </>
-          )}
-        </div>
-
         {/* Main Chat Area */}
         <div className="flex-1 flex flex-col">
           {/* Header */}
           <div className="px-4 py-4 border-b border-border flex items-center gap-3">
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => setSidebarOpen(!sidebarOpen)}
-            >
-              {sidebarOpen ? (
-                <PanelLeftClose className="h-4 w-4" />
-              ) : (
-                <PanelLeft className="h-4 w-4" />
-              )}
-            </Button>
             <div>
               <h1 className="text-lg font-semibold text-foreground">AI Assistant</h1>
               <p className="text-xs text-muted-foreground">Ask about EU regulations</p>
@@ -359,7 +202,7 @@ export default function Chat() {
           </ScrollArea>
 
           {/* Suggested Prompts */}
-          {messages.length === 0 && (
+          {messages.length === 1 && (
             <div className="px-4 pb-2">
               <div className="max-w-3xl mx-auto flex flex-wrap gap-2">
                 {suggestedPrompts.map((prompt) => (

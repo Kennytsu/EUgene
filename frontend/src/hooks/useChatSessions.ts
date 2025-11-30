@@ -31,7 +31,7 @@ export function useChatSessions() {
         .from("chat_sessions")
         .select("*")
         .eq("user_id", userId)
-        .order("created_at", { ascending: false });
+        .order("updated_at", { ascending: false });
 
       if (error) {
         console.error("Error fetching chat sessions:", error);
