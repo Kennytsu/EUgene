@@ -136,8 +136,14 @@ export function useLegislativeFiles(limit = 20) {
           keyPlayers = file.key_players as KeyPlayer[];
         }
 
-        // Normalize topics from subjects to standard regulatory topics
-        const normalizedTopics = normalizeTopics(subjects);
+        // Use topics from database if they exist, otherwise normalize from subjects
+        let topics: string[] = [];
+        if (file.topics && Array.isArray(file.topics)) {
+          topics = file.topics as string[];
+        } else {
+          // Only normalize from subjects if no topics in database
+          topics = normalizeTopics(subjects);
+        }
 
         return {
           id: file.id,
@@ -147,7 +153,7 @@ export function useLegislativeFiles(limit = 20) {
           summary: file.status || "Status unknown",
           impact: mapLegislativeImpact(file.status),
           status: mapLegislativeStatus(file.status),
-          topics: normalizedTopics, // Use normalized topics instead of raw subjects
+          topics: topics, // Use database topics or normalized topics
           source: file.link || "#",
           legislativeStatus: file.status,
           committee: file.committee || undefined,

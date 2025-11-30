@@ -160,9 +160,29 @@ export default function Board() {
     // Topics filter
     if (selectedTopics.length > 0) {
       console.log('🔍 Filtering by selected topics:', selectedTopics);
+      console.log('Selected topics details:', selectedTopics.map(t => ({
+        value: t,
+        length: t.length,
+        charCodes: [...t].map(c => c.charCodeAt(0))
+      })));
+      
       filtered = filtered.filter(item => {
         const itemTopics = item.topics || [];
-        const matches = selectedTopics.some(topic => itemTopics.includes(topic));
+        const matches = selectedTopics.some(topic => {
+          const found = itemTopics.includes(topic);
+          if (!found && itemTopics.length > 0) {
+            console.log('❌ No match for', topic, 'in', itemTopics, 'comparison:', 
+              itemTopics.map(it => ({
+                itemTopic: it,
+                selectedTopic: topic,
+                equal: it === topic,
+                itemLength: it.length,
+                selectedLength: topic.length
+              }))
+            );
+          }
+          return found;
+        });
         return matches;
       });
       console.log(`✅ After topic filter: ${filtered.length} items remaining`);
