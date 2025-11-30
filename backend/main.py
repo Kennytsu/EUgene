@@ -47,8 +47,10 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=[
         "http://localhost:8080",  # Frontend dev server
+        "http://localhost:8081",  # Frontend dev server (alternate port)
         "http://localhost:3000",  # Alternative frontend port
         "http://127.0.0.1:8080",
+        "http://127.0.0.1:8081",
         "http://127.0.0.1:3000",
     ],
     allow_credentials=True,
